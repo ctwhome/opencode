@@ -26,12 +26,22 @@ describe("custom sidebar integration seam", () => {
     expect(source).toContain('aria-controls="ctw-sidebar-mobile-dialog"')
   })
 
-  test("exposes the existing terminal toggle from the mobile session titlebar", async () => {
-    const source = await Bun.file(titlebarPath).text()
+  test("keeps the mobile drawer above the session composer", async () => {
+    const source = await Bun.file(sidebarPath).text()
 
-    expect(source.match(/id="ctw-mobile-terminal-toggle"/g)).toHaveLength(1)
-    expect(source).toContain('<Show when={mobile() && layout.route().type === "session"}>')
-    expect(source).toContain('command.trigger("terminal.toggle")')
-    expect(source).toContain('aria-controls="terminal-panel"')
+    expect(source).toContain('class="fixed inset-x-0 top-10 bottom-0 z-[80] xl:hidden"')
+  })
+
+  test("owns the mobile terminal action inside the custom sidebar", async () => {
+    const sidebar = await Bun.file(sidebarPath).text()
+    const titlebar = await Bun.file(titlebarPath).text()
+
+    expect(sidebar.match(/data-component="ctw-sidebar-terminal"/g)).toHaveLength(1)
+    expect(sidebar).toContain("<Show when={props.mobile && activeSessionID()}>")
+    expect(sidebar).toContain('language.t("terminal.title")')
+    expect(sidebar).toContain('command.trigger("terminal.toggle")')
+    expect(sidebar).toContain("layout.mobileSidebar.hide()")
+    expect(sidebar).toContain('aria-controls="terminal-panel"')
+    expect(titlebar).not.toContain('id="ctw-mobile-terminal-toggle"')
   })
 })

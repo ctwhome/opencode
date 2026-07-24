@@ -1,8 +1,10 @@
 import { For, Show, createEffect, createMemo, type JSX } from "solid-js"
+import { Icon } from "@opencode-ai/ui/icon"
 import { ProjectAvatar } from "@opencode-ai/ui/v2/project-avatar-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { useDirectoryPicker } from "@/components/directory-picker"
 import { useSettingsDialog } from "@/components/settings-dialog"
+import { useCommand } from "@/context/command"
 import { getProjectAvatarVariant, useLayout, type LocalProject } from "@/context/layout"
 import { useLanguage } from "@/context/language"
 import { useServer } from "@/context/server"
@@ -68,7 +70,7 @@ export function CtwSidebar(): JSX.Element {
       <Show when={layout.mobileSidebar.opened()}>
         <div
           data-component="ctw-sidebar-mobile"
-          class="fixed inset-x-0 top-10 bottom-0 z-50 xl:hidden"
+          class="fixed inset-x-0 top-10 bottom-0 z-[80] xl:hidden"
           onClick={(event) => {
             if (event.target === event.currentTarget) layout.mobileSidebar.hide()
           }}
@@ -128,6 +130,7 @@ function SidebarSessionRow(props: {
 
 function SidebarPanel(props: { mobile?: boolean }) {
   const layout = useLayout()
+  const command = useCommand()
   const language = useLanguage()
   const server = useServer()
   const sync = useServerSync()
@@ -215,6 +218,11 @@ function SidebarPanel(props: { mobile?: boolean }) {
         if (directories.length > 0) layout.sidebar.open()
       },
     })
+  }
+
+  function toggleTerminal() {
+    command.trigger("terminal.toggle")
+    layout.mobileSidebar.hide()
   }
 
   return (
@@ -334,6 +342,20 @@ function SidebarPanel(props: { mobile?: boolean }) {
       </div>
       <div class="shrink-0 border-t border-v2-border-border-weak p-2">
         <div classList={{ "flex gap-1": expanded(), "flex flex-col items-center gap-1": !expanded() }}>
+          <Show when={props.mobile && activeSessionID()}>
+            <button
+              type="button"
+              data-component="ctw-sidebar-terminal"
+              class="flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-md text-v2-icon-icon-muted hover:bg-v2-background-bg-hover hover:text-v2-icon-icon-base"
+              title={language.t("command.terminal.toggle")}
+              aria-label={language.t("command.terminal.toggle")}
+              aria-controls="terminal-panel"
+              onClick={toggleTerminal}
+            >
+              <Icon name="terminal" size="small" />
+              <span class="truncate text-13-medium text-v2-text-text-base">{language.t("terminal.title")}</span>
+            </button>
+          </Show>
           <Show when={!props.mobile}>
             <button
               type="button"
