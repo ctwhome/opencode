@@ -44,4 +44,15 @@ describe("custom sidebar integration seam", () => {
     expect(sidebar).toContain('aria-controls="terminal-panel"')
     expect(titlebar).not.toContain('id="ctw-mobile-terminal-toggle"')
   })
+
+  test("owns a touch-only edge swipe that drives the custom mobile drawer", async () => {
+    const sidebar = await Bun.file(sidebarPath).text()
+
+    expect(sidebar).toContain('createMediaQuery("(hover: none) and (pointer: coarse)")')
+    expect(sidebar).toContain('data-component="ctw-sidebar-edge-swipe"')
+    expect(sidebar).toContain("onTouchStart={startMobileSwipe}")
+    expect(sidebar).toContain("onTouchMove={moveMobileSwipe}")
+    expect(sidebar).toContain("edgeSwipeShouldOpen")
+    expect(sidebar).toContain("translate3d(calc(-100% +")
+  })
 })

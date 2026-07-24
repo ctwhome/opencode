@@ -1,4 +1,5 @@
-import { For, Show, createEffect, createMemo, type JSX } from "solid-js"
+import { For, Show, createEffect, createMemo, createSignal, onCleanup, type JSX } from "solid-js"
+import { createMediaQuery } from "@solid-primitives/media"
 import { Icon } from "@opencode-ai/ui/icon"
 import { ProjectAvatar } from "@opencode-ai/ui/v2/project-avatar-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
@@ -13,6 +14,14 @@ import { useTabs } from "@/context/tabs"
 import { sessionTitle } from "@/utils/session-title"
 import { applySidebarSessionSelection } from "./selection"
 import {
+  beginEdgeSwipe,
+  edgeSwipeOffset,
+  edgeSwipeProgress,
+  edgeSwipeShouldOpen,
+  updateEdgeSwipe,
+  type EdgeSwipeState,
+} from "./edge-swipe"
+import {
   loadSidebarProjectSessions,
   projectForDirectory,
   projectLabel,
@@ -24,6 +33,92 @@ import {
 export function CtwSidebar(): JSX.Element {
   const layout = useLayout()
   const sync = useServerSync()
+  const touchInput = createMediaQuery("(hover: none) and (pointer: coarse)")
+  const [mobileSwipe, setMobileSwipe] = createSignal<EdgeSwipeState>()
+  const [mobileSwipeSettling, setMobileSwipeSettling] = createSignal(false)
+  let mobileDialog: HTMLElement | undefined
+  let mobileSwipeTimer: ReturnType<typeof setTimeout> | undefined
+
+  const mobileDrawerVisible = createMemo(() => layout.mobileSidebar.opened() || !!mobileSwipe())
+  const mobileDrawerTransform = createMemo(() => {
+    if (layout.mobileSidebar.opened()) return "translate3d(0, 0, 0)"
+    const swipe = mobileSwipe()
+    const offset = swipe ? edgeSwipeOffset(swipe) : 0
+    return `translate3d(calc(-100% + ${offset}px), 0, 0)`
+  })
+  const mobileBackdropOpacity = createMemo(() => {
+    if (layout.mobileSidebar.opened()) return 0.3
+    const swipe = mobileSwipe()
+    return swipe ? edgeSwipeProgress(swipe) * 0.3 : 0
+  })
+
+  function clearMobileSwipeTimer() {
+    if (mobileSwipeTimer === undefined) return
+    clearTimeout(mobileSwipeTimer)
+    mobileSwipeTimer = undefined
+  }
+
+  function finishMobileSwipe(swipe: EdgeSwipeState, open: boolean) {
+    clearMobileSwipeTimer()
+    setMobileSwipeSettling(true)
+    if (open) {
+      layout.mobileSidebar.show()
+      setMobileSwipe(undefined)
+    } else {
+      setMobileSwipe({ ...swipe, currentX: swipe.startX, currentAt: performance.now() })
+    }
+    mobileSwipeTimer = setTimeout(() => {
+      if (!open) setMobileSwipe(undefined)
+      setMobileSwipeSettling(false)
+      mobileSwipeTimer = undefined
+    }, 200)
+  }
+
+  function startMobileSwipe(event: TouchEvent & { currentTarget: HTMLDivElement }) {
+    if (layout.mobileSidebar.opened() || event.touches.length !== 1) return
+    const touch = event.touches[0]
+    if (!touch) return
+    const swipe = beginEdgeSwipe({
+      x: touch.clientX,
+      y: touch.clientY,
+      at: event.timeStamp,
+      width: Math.min(380, window.innerWidth),
+    })
+    if (!swipe) return
+    clearMobileSwipeTimer()
+    setMobileSwipeSettling(false)
+    setMobileSwipe(swipe)
+  }
+
+  function moveMobileSwipe(event: TouchEvent & { currentTarget: HTMLDivElement }) {
+    const swipe = mobileSwipe()
+    const touch = event.touches[0]
+    if (!swipe || !touch || event.touches.length !== 1) return
+    const next = updateEdgeSwipe(swipe, { x: touch.clientX, y: touch.clientY, at: event.timeStamp })
+    if (next.axis === "vertical") {
+      setMobileSwipe(undefined)
+      return
+    }
+    if (next.axis === "horizontal" && event.cancelable) event.preventDefault()
+    setMobileSwipe(next)
+  }
+
+  function endMobileSwipe(event: TouchEvent & { currentTarget: HTMLDivElement }) {
+    const swipe = mobileSwipe()
+    if (!swipe) return
+    const touch = event.changedTouches[0]
+    const next = touch
+      ? updateEdgeSwipe(swipe, { x: touch.clientX, y: touch.clientY, at: event.timeStamp })
+      : swipe
+    finishMobileSwipe(next, edgeSwipeShouldOpen(next))
+  }
+
+  function cancelMobileSwipe() {
+    const swipe = mobileSwipe()
+    if (swipe) finishMobileSwipe(swipe, false)
+  }
+
+  onCleanup(clearMobileSwipeTimer)
 
   function mobileFocusable(root: HTMLElement) {
     return [...root.querySelectorAll<HTMLElement>("button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])")].filter(
@@ -54,6 +149,13 @@ export function CtwSidebar(): JSX.Element {
   }
 
   createEffect(() => {
+    if (!layout.mobileSidebar.opened()) return
+    queueMicrotask(() => {
+      if (layout.mobileSidebar.opened() && mobileDialog) mobileFocusable(mobileDialog)[0]?.focus()
+    })
+  })
+
+  createEffect(() => {
     void loadSidebarProjectSessions(layout.projects.list(), (directory) => sync().project.loadSessions(directory)).catch(
       () => undefined,
     )
@@ -67,26 +169,50 @@ export function CtwSidebar(): JSX.Element {
       >
         <SidebarPanel />
       </aside>
-      <Show when={layout.mobileSidebar.opened()}>
+      <Show when={touchInput() && !layout.mobileSidebar.opened()}>
+        <div
+          data-component="ctw-sidebar-edge-swipe"
+          class="fixed left-0 top-10 bottom-0 z-[79] w-6 xl:hidden"
+          style={{ "touch-action": "pan-y" }}
+          aria-hidden="true"
+          onTouchStart={startMobileSwipe}
+          onTouchMove={moveMobileSwipe}
+          onTouchEnd={endMobileSwipe}
+          onTouchCancel={cancelMobileSwipe}
+        />
+      </Show>
+      <Show when={mobileDrawerVisible()}>
         <div
           data-component="ctw-sidebar-mobile"
           class="fixed inset-x-0 top-10 bottom-0 z-[80] xl:hidden"
           onClick={(event) => {
-            if (event.target === event.currentTarget) layout.mobileSidebar.hide()
+            if (layout.mobileSidebar.opened() && event.target === event.currentTarget) layout.mobileSidebar.hide()
           }}
         >
           <div
-            class="absolute inset-0 bg-black/30"
+            classList={{
+              "absolute inset-0 bg-black": true,
+              "transition-opacity duration-200 ease-out": mobileSwipeSettling(),
+            }}
+            style={{ opacity: mobileBackdropOpacity() }}
             aria-hidden="true"
-            onClick={() => layout.mobileSidebar.hide()}
+            onClick={() => {
+              if (layout.mobileSidebar.opened()) layout.mobileSidebar.hide()
+            }}
           />
           <aside
             id="ctw-sidebar-mobile-dialog"
-            ref={(element) => queueMicrotask(() => mobileFocusable(element)[0]?.focus())}
+            ref={mobileDialog}
             role="dialog"
-            aria-modal="true"
+            aria-modal={layout.mobileSidebar.opened() ? "true" : undefined}
+            aria-hidden={layout.mobileSidebar.opened() ? undefined : "true"}
+            inert={!layout.mobileSidebar.opened()}
             aria-label="Projects and sessions"
-            class="relative h-full w-full max-w-[380px] border-r border-v2-border-border-weak bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)]"
+            classList={{
+              "relative h-full w-full max-w-[380px] border-r border-v2-border-border-weak bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)] will-change-transform": true,
+              "transition-transform duration-200 ease-out": mobileSwipeSettling(),
+            }}
+            style={{ transform: mobileDrawerTransform() }}
             onKeyDown={handleMobileKeys}
             onClick={(event) => event.stopPropagation()}
           >
