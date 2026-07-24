@@ -8,6 +8,7 @@ import { useSettingsDialog } from "@/components/settings-dialog"
 import { useCommand } from "@/context/command"
 import { getProjectAvatarVariant, useLayout, type LocalProject } from "@/context/layout"
 import { useLanguage } from "@/context/language"
+import { usePlatform } from "@/context/platform"
 import { useServer } from "@/context/server"
 import { useServerSync } from "@/context/server-sync"
 import { useTabs } from "@/context/tabs"
@@ -258,12 +259,14 @@ function SidebarPanel(props: { mobile?: boolean }) {
   const layout = useLayout()
   const command = useCommand()
   const language = useLanguage()
+  const platform = usePlatform()
   const server = useServer()
   const sync = useServerSync()
   const tabs = useTabs()
   const pickDirectory = useDirectoryPicker()
   const openSettings = useSettingsDialog()
   const expanded = createMemo(() => props.mobile || layout.sidebar.opened())
+  const clientVersion = () => import.meta.env.VITE_OPENCODE_VERSION || platform.version
   const projects = createMemo(() => layout.projects.list())
   const projectChildren = createMemo(() => {
     const children = new Map<string, ReturnType<ReturnType<typeof sync>["child"]>[0]>()
@@ -516,6 +519,18 @@ function SidebarPanel(props: { mobile?: boolean }) {
             <IconV2 name="settings-gear" />
           </button>
         </div>
+        <Show when={expanded() && clientVersion()}>
+          {(version) => (
+            <div
+              data-component="ctw-sidebar-version"
+              data-build-version={version()}
+              class="mt-1 truncate px-1 text-center text-11-regular text-v2-text-text-muted"
+              title={`Loaded client build ${version()}`}
+            >
+              OpenCode v{version()}
+            </div>
+          )}
+        </Show>
       </div>
     </div>
   )

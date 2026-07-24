@@ -500,6 +500,18 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                     aria-pressed={layout.route().type === "home"}
                   />
                 </TooltipV2>
+                <Show when={layout.route().type === "home"}>
+                  <IconButtonV2
+                    type="button"
+                    data-action="home-mobile-session-search"
+                    variant="ghost-muted"
+                    size="large"
+                    class="!size-9 shrink-0 lg:hidden"
+                    icon={<IconV2 name="magnifying-glass" />}
+                    onClick={() => command.trigger("home.sessions.search.focus")}
+                    aria-label={language.t("home.sessions.search.placeholder")}
+                  />
+                </Show>
 
                 <TitlebarTabStrip
                   tabs={tabsStore}

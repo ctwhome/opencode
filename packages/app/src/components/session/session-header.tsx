@@ -292,6 +292,15 @@ export function SessionHeader() {
       <Show when={search() && centerMount()}>
         {(mount) => (
           <Portal mount={mount()}>
+            <IconButton
+              type="button"
+              data-action="session-header-mobile-file-search"
+              icon="magnifying-glass"
+              variant="ghost"
+              class="md:hidden titlebar-icon size-9 rounded-md"
+              onClick={() => command.trigger("file.open")}
+              aria-label={language.t("session.header.searchFiles")}
+            />
             <Button
               type="button"
               variant="ghost"
