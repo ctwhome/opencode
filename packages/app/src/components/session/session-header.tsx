@@ -235,6 +235,9 @@ export function SessionHeader() {
     messageAgentColor(params.id ? sync().data.message[params.id] : undefined, sync().data.agent),
   )
   const v2ActionsState = createMemo<SessionHeaderV2ActionsState>(() => ({
+    terminalLabel: language.t("command.terminal.toggle"),
+    terminalOpened: view().terminal.opened(),
+    onTerminalToggle: toggleTerminal,
     statusVisible: status(),
     statusLabel: language.t("status.popover.trigger"),
     reviewLabel: language.t("command.review.toggle"),
@@ -526,6 +529,9 @@ export function SessionHeader() {
 }
 
 type SessionHeaderV2ActionsState = {
+  terminalLabel: string
+  terminalOpened: boolean
+  onTerminalToggle: () => void
   statusVisible: boolean
   statusLabel: string
   reviewLabel: string
@@ -540,6 +546,19 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
 
   return (
     <div class="flex items-center gap-2">
+      <IconButtonV2
+        type="button"
+        data-action="session-header-mobile-terminal-toggle"
+        variant="ghost-muted"
+        size="large"
+        class="!size-9 shrink-0 md:hidden"
+        state={props.state.terminalOpened ? "pressed" : undefined}
+        onClick={props.state.onTerminalToggle}
+        aria-label={props.state.terminalLabel}
+        aria-expanded={props.state.terminalOpened}
+        aria-controls="terminal-panel"
+        icon={<Icon name={props.state.terminalOpened ? "terminal-active" : "terminal"} size="small" />}
+      />
       <Show when={props.state.statusVisible}>
         <Tooltip placement="bottom" value={props.state.statusLabel}>
           <StatusPopoverV2 />
