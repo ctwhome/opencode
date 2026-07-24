@@ -537,6 +537,29 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                     />
                   </TooltipV2>
                 </Show>
+                <Show when={mobile() && layout.route().type === "session"}>
+                  <TooltipV2
+                    placement="bottom"
+                    value={
+                      <>
+                        {language.t("command.terminal.toggle")}
+                        <KeybindV2 keys={command.keybindParts("terminal.toggle")} variant="neutral" />
+                      </>
+                    }
+                  >
+                    <IconButtonV2
+                      id="ctw-mobile-terminal-toggle"
+                      type="button"
+                      variant="ghost-muted"
+                      size="large"
+                      class="!size-9 shrink-0"
+                      icon={<Icon name="terminal" size="small" />}
+                      onClick={() => command.trigger("terminal.toggle")}
+                      aria-label={language.t("command.terminal.toggle")}
+                      aria-controls="terminal-panel"
+                    />
+                  </TooltipV2>
+                </Show>
                 <div class="flex-1" />
                 <TitlebarV2Right state={v2RightState()} />
                 <Show when={windows() && !electronWindows()}>

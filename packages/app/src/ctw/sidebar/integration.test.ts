@@ -25,4 +25,13 @@ describe("custom sidebar integration seam", () => {
     expect(source.match(/data-component="ctw-sidebar-mobile-toggle"/g)).toHaveLength(1)
     expect(source).toContain('aria-controls="ctw-sidebar-mobile-dialog"')
   })
+
+  test("exposes the existing terminal toggle from the mobile session titlebar", async () => {
+    const source = await Bun.file(titlebarPath).text()
+
+    expect(source.match(/id="ctw-mobile-terminal-toggle"/g)).toHaveLength(1)
+    expect(source).toContain('<Show when={mobile() && layout.route().type === "session"}>')
+    expect(source).toContain('command.trigger("terminal.toggle")')
+    expect(source).toContain('aria-controls="terminal-panel"')
+  })
 })
