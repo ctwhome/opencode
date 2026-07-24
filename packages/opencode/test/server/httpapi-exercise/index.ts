@@ -57,6 +57,15 @@ function locationData(validate: (value: any) => void) {
   }
 }
 
+function git(directory: string | undefined, ...args: string[]) {
+  return Effect.sync(() => {
+    if (!directory) throw new Error("git scenario needs a project directory")
+    const result = Bun.spawnSync(["git", ...args], { cwd: directory })
+    if (result.exitCode === 0) return result.stdout.toString("utf8").trim()
+    throw new Error(result.stderr.toString("utf8").trim() || `git ${args[0]} failed`)
+  })
+}
+
 const scenarios: Scenario[] = [
   http.protected
     .get("/global/health", "global.health")
@@ -139,6 +148,92 @@ const scenarios: Scenario[] = [
     .inProject({ git: false })
     .at((ctx) => ({ path: "/vcs/apply", headers: ctx.headers(), body: { patch: "" } }))
     .status(400, undefined, "status"),
+  http.protected
+    .get("/experimental/ctw/source-control/status", "experimental.ctwSourceControl.status")
+    .json(200, (body) => {
+      object(body)
+      array(body.files)
+    }),
+  http.protected
+    .post("/experimental/ctw/source-control/stage", "experimental.ctwSourceControl.stage")
+    .mutating()
+    .seeded((ctx) => ctx.file("stage.txt", "stage me"))
+    .at((ctx) => ({
+      path: "/experimental/ctw/source-control/stage",
+      headers: ctx.headers(),
+      body: { files: ["stage.txt"] },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.success === true, "stage should succeed")
+    }),
+  http.protected
+    .post("/experimental/ctw/source-control/unstage", "experimental.ctwSourceControl.unstage")
+    .mutating()
+    .seeded((ctx) =>
+      Effect.gen(function* () {
+        yield* ctx.file("unstage.txt", "unstage me")
+        yield* git(ctx.directory, "add", "unstage.txt")
+      }),
+    )
+    .at((ctx) => ({
+      path: "/experimental/ctw/source-control/unstage",
+      headers: ctx.headers(),
+      body: { files: ["unstage.txt"] },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(body.success === true, "unstage should succeed")
+    }),
+  http.protected
+    .post("/experimental/ctw/source-control/generate-message", "experimental.ctwSourceControl.generateMessage")
+    .withLlm()
+    .seeded((ctx) =>
+      Effect.gen(function* () {
+        yield* ctx.file("generate.txt", "generate me")
+        yield* git(ctx.directory, "add", "generate.txt")
+        yield* ctx.llmText("feat: generate commit message")
+      }),
+    )
+    .json(200, (body) => {
+      object(body)
+      check(body.message === "feat: generate commit message", "generated message should use staged diff")
+    }),
+  http.protected
+    .post("/experimental/ctw/source-control/commit", "experimental.ctwSourceControl.commit")
+    .mutating()
+    .seeded((ctx) =>
+      Effect.gen(function* () {
+        yield* ctx.file("commit.txt", "commit me")
+        yield* git(ctx.directory, "add", "commit.txt")
+      }),
+    )
+    .at((ctx) => ({
+      path: "/experimental/ctw/source-control/commit",
+      headers: ctx.headers(),
+      body: { message: "test: exercise commit route" },
+    }))
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.message === "string" && body.message.length > 0, "commit should return Git output")
+    }),
+  http.protected
+    .post("/experimental/ctw/source-control/push", "experimental.ctwSourceControl.push")
+    .mutating()
+    .seeded((ctx) =>
+      Effect.gen(function* () {
+        yield* git(ctx.directory, "init", "--bare", ".git/ctw-test-remote.git")
+        yield* git(ctx.directory, "remote", "add", "origin", ".git/ctw-test-remote.git")
+        yield* git(ctx.directory, "push", "-u", "origin", "HEAD")
+        yield* ctx.file("push.txt", "push me")
+        yield* git(ctx.directory, "add", "push.txt")
+        yield* git(ctx.directory, "commit", "-m", "test: exercise push route")
+      }),
+    )
+    .json(200, (body) => {
+      object(body)
+      check(typeof body.message === "string" && body.message.length > 0, "push should return Git output")
+    }),
   http.protected.get("/command", "command.list").json(200, array, "status"),
   http.protected.get("/agent", "app.agents").json(200, array, "status"),
   http.protected.get("/skill", "app.skills").json(200, array, "status"),

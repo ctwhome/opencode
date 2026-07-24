@@ -85,6 +85,7 @@ import { eventHandlers } from "./handlers/event"
 import { configHandlers } from "./handlers/config"
 import { controlHandlers } from "./handlers/control"
 import { controlPlaneHandlers } from "./handlers/control-plane"
+import { ctwSourceControlHandlers } from "./handlers/ctw-source-control"
 import { experimentalHandlers } from "./handlers/experimental"
 import { fileHandlers } from "./handlers/file"
 import { globalHandlers } from "./handlers/global"
@@ -154,6 +155,7 @@ const ptyConnectApiRoutes = HttpApiBuilder.layer(PtyConnectApi).pipe(
 const instanceApiRoutes = HttpApiBuilder.layer(InstanceHttpApi).pipe(
   Layer.provide([
     configHandlers,
+    ctwSourceControlHandlers,
     experimentalHandlers,
     fileHandlers,
     instanceHandlers,

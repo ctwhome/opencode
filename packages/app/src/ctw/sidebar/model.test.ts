@@ -9,6 +9,7 @@ import {
 
 const session = (input: {
   id: string
+  projectID?: string
   directory: string
   title?: string
   parentID?: string
@@ -17,6 +18,7 @@ const session = (input: {
   updated?: number
 }) => ({
   id: input.id,
+  projectID: input.projectID,
   directory: input.directory,
   title: input.title ?? input.id,
   parentID: input.parentID,
@@ -72,6 +74,14 @@ describe("custom sidebar model", () => {
     expect(projectForDirectory(projects, "/repo")?.worktree).toBe("/repo")
     expect(projectForDirectory(projects, "/repo-workspace")?.worktree).toBe("/repo")
     expect(projectForDirectory(projects, "/missing")).toBeUndefined()
+  })
+
+  test("uses project id when a symlink resolves sessions to a different path", () => {
+    const projects = [{ id: "project", worktree: "/repo-alias", sandboxes: [] }]
+    const sessions = [session({ id: "linked", projectID: "project", directory: "/repo-real", updated: 20 })]
+
+    expect(projectForDirectory(projects, "/repo-real", "project")?.worktree).toBe("/repo-alias")
+    expect(visibleProjectSessions(sessions, "/repo-alias", "project").map((item) => item.id)).toEqual(["linked"])
   })
 
   test("loads root and sandbox directories once per project", async () => {

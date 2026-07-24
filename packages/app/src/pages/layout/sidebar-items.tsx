@@ -1,6 +1,5 @@
 import type { Session } from "@opencode-ai/sdk/v2/client"
 import { Avatar } from "@opencode-ai/ui/avatar"
-import { Icon } from "@opencode-ai/ui/icon"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Spinner } from "@opencode-ai/ui/spinner"
@@ -44,7 +43,7 @@ export const ProjectIcon = (props: {
   const name = createMemo(() => props.project.name || getFilename(props.project.worktree))
 
   return (
-    <div class={`relative size-8 shrink-0 rounded ${props.class ?? ""}`}>
+    <div class={`relative size-10 shrink-0 rounded ${props.class ?? ""}`}>
       <div class="size-full rounded overflow-clip">
         <Avatar
           fallback={name()}
@@ -173,7 +172,7 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
   )
   const tooltip = createMemo(() => props.showTooltip ?? (props.mobile || !props.sidebarExpanded()))
   const currentChild = createMemo(() => {
-    if (!props.showChild) return
+    if (!props.showChild) return undefined
     return childSessionOnPath(sessionStore.session, props.session.id, params.id)
   })
 

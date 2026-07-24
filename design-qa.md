@@ -1,60 +1,46 @@
-**Comparison Target**
-
-- Source visual truth: `/var/folders/78/t7tp8f_557d8qdc94shsqp0w0000gn/T/codex-clipboard-POA33j.png`
-- Source dimensions: 407 x 988 px
-- Implementation: `http://127.0.0.1:4096/`, build `1.18.4-new-ui-sidebar.7`
-- Intended state: desktop dark theme, sidebar expanded, project selected, current session selected
-- Implementation screenshot: unavailable
-- Viewport, CSS size, and density normalization: unavailable because browser capture did not complete
-
 **Findings**
 
-- [P1] Visual comparison unavailable
-  Location: full sidebar.
-  Evidence: source screenshot opened successfully; implementation reload and screenshot capture timed out repeatedly through available browser control.
-  Impact: typography, spacing, colors, icon sizing, copy, and active-state fidelity cannot receive a visual pass.
-  Fix: reopen build `1.18.4-new-ui-sidebar.7`, capture same expanded-sidebar state, and compare it with source at matching crop and scale.
+- No actionable P0, P1, or P2 mismatch.
+- Source-control controls preserve OpenCode's dark theme, typography, borders, spacing, icon language, and compact file-tree density while adopting the VS Code commit workflow.
 
-**Fidelity Surfaces**
+**Open Questions**
 
-- Fonts and typography: code uses existing OpenCode 12px and 14px text tokens; visual comparison blocked.
-- Spacing and layout rhythm: code restores 64px rail, 40px project buttons, 32px avatars, and adjacent selected-project panel; visual comparison blocked.
-- Colors and visual tokens: existing OpenCode v2 theme tokens used; visual comparison blocked.
-- Image quality and asset fidelity: existing project-avatar component and icon set reused; no replacement image assets created.
-- Copy and content: project name, shortened path, New session label, project sessions, settings, help, and build label preserved; visual comparison blocked.
-
-**Interaction Checks**
-
-- Focused sidebar tests: passed.
-- Package typecheck: passed.
-- Production binary build and smoke test: passed.
-- Server health: passed as `1.18.4-new-ui-sidebar.7`.
-- Project switching, active-session highlight, console errors: browser verification blocked.
-
-**Full-view Comparison Evidence**
-
-- Source opened at 407 x 988 px.
-- Implementation capture unavailable; no visual match claim made.
-
-**Focused Region Comparison Evidence**
-
-- Not performed because implementation capture is unavailable.
-
-**Comparison History**
-
-- Initial implementation restored v1.17 two-column project/session composition from source code and screenshot.
-- No post-fix visual iteration completed because implementation capture remained unavailable.
+- None blocking.
 
 **Implementation Checklist**
 
-- Capture expanded sidebar from running `.7` build.
-- Verify project rail sizing and selected-project border.
-- Click another project and confirm adjacent session list changes.
-- Open a session and confirm its row receives selected background.
-- Check browser console.
+- [x] Commit-message input
+- [x] AI message-generation affordance
+- [x] Commit and Push actions
+- [x] Stage All and per-file stage actions
+- [x] Staged and unstaged sections
+- [x] Branch and ahead/behind status
+- [x] Existing file-diff selection preserved
 
 **Follow-up Polish**
 
-- Adjust spacing or token choices only after direct screenshot comparison.
+- P3: At very narrow review widths, long file paths intentionally truncate. Tooltips/accessibility labels retain full paths.
 
-final result: blocked
+**Evidence**
+
+- Source visual truth: embedded in `design-qa-comparison.png`.
+- Implementation screenshot: `design-qa-source-control.png` (1853 x 962 px)
+- Combined comparison: `design-qa-comparison.png` (1707 x 894 px)
+- Viewport: Chrome desktop, 1853 x 962 CSS-pixel capture, device density 1.
+- State: dark theme; fork session open; Review > Files Changed; Git changes mode; 15 unstaged files; branch `shared-sidebar`; ahead 1.
+- Density normalization: reference images retained at native size; VS Code reference scaled to 447 px width; implementation review region cropped to 813 x 625 px; all three placed in one 1707 x 894 comparison canvas.
+- Full-view comparison: hierarchy and region proportions match OpenCode's existing review panel; source-control form remains visibly subordinate to Files Changed header and diff.
+- Focused-region comparison: commit field, generate affordance, Commit/Push row, Changes heading, Stage All action, and file rows are readable in the combined comparison. No second crop needed.
+- Fonts and typography: existing OpenCode font stack, compact UI sizing, weights, truncation, and hierarchy retained.
+- Spacing and layout rhythm: compact control stack, consistent 8 px-class gaps, existing radii, and current panel boundaries retained.
+- Colors and visual tokens: existing OpenCode semantic background, border, icon, disabled, hover, selected, and focus tokens used; no white-border regression.
+- Image quality and asset fidelity: no raster assets required; existing product icon components used.
+- Copy and content: labels are direct and consistent with familiar source-control terminology.
+- Primary interactions tested: review panel toggle; Review tab selection; Git status loaded from the source backend candidate; file diff remained selected. Backend stage, unstage, generate, commit, and push flows passed automated HTTP exercises and a disposable repository with a local bare remote.
+- Console/errors: no console errors in initial `.7` browser check. No source-control error notification appeared during rendered capture.
+
+**Comparison History**
+
+- Pass 1: no actionable P0/P1/P2 findings; no visual fix iteration required.
+
+final result: passed

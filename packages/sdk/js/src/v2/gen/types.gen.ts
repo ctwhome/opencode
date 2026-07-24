@@ -2122,6 +2122,13 @@ export type Provider = {
   }
 }
 
+export type CtwSourceControlError = {
+  name: "CtwSourceControlError"
+  data: {
+    message: string
+  }
+}
+
 export type ExperimentalCapabilities = {
   backgroundSubagents: boolean
 }
@@ -7499,6 +7506,214 @@ export type ConfigProvidersResponses = {
 }
 
 export type ConfigProvidersResponse = ConfigProvidersResponses[keyof ConfigProvidersResponses]
+
+export type ExperimentalCtwSourceControlStatusData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/ctw/source-control/status"
+}
+
+export type ExperimentalCtwSourceControlStatusErrors = {
+  /**
+   * CtwSourceControlError | InvalidRequestError
+   */
+  400: CtwSourceControlError | InvalidRequestError
+}
+
+export type ExperimentalCtwSourceControlStatusError =
+  ExperimentalCtwSourceControlStatusErrors[keyof ExperimentalCtwSourceControlStatusErrors]
+
+export type ExperimentalCtwSourceControlStatusResponses = {
+  /**
+   * Success
+   */
+  200: {
+    branch?: string
+    upstream?: string
+    ahead: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    behind: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+    files: Array<{
+      file: string
+      index: string
+      worktree: string
+      staged: boolean
+      unstaged: boolean
+    }>
+  }
+}
+
+export type ExperimentalCtwSourceControlStatusResponse =
+  ExperimentalCtwSourceControlStatusResponses[keyof ExperimentalCtwSourceControlStatusResponses]
+
+export type ExperimentalCtwSourceControlStageData = {
+  body?: {
+    files: Array<string>
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/ctw/source-control/stage"
+}
+
+export type ExperimentalCtwSourceControlStageErrors = {
+  /**
+   * CtwSourceControlError | InvalidRequestError
+   */
+  400: CtwSourceControlError | InvalidRequestError
+}
+
+export type ExperimentalCtwSourceControlStageError =
+  ExperimentalCtwSourceControlStageErrors[keyof ExperimentalCtwSourceControlStageErrors]
+
+export type ExperimentalCtwSourceControlStageResponses = {
+  /**
+   * Success
+   */
+  200: {
+    success: boolean
+  }
+}
+
+export type ExperimentalCtwSourceControlStageResponse =
+  ExperimentalCtwSourceControlStageResponses[keyof ExperimentalCtwSourceControlStageResponses]
+
+export type ExperimentalCtwSourceControlUnstageData = {
+  body?: {
+    files: Array<string>
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/ctw/source-control/unstage"
+}
+
+export type ExperimentalCtwSourceControlUnstageErrors = {
+  /**
+   * CtwSourceControlError | InvalidRequestError
+   */
+  400: CtwSourceControlError | InvalidRequestError
+}
+
+export type ExperimentalCtwSourceControlUnstageError =
+  ExperimentalCtwSourceControlUnstageErrors[keyof ExperimentalCtwSourceControlUnstageErrors]
+
+export type ExperimentalCtwSourceControlUnstageResponses = {
+  /**
+   * Success
+   */
+  200: {
+    success: boolean
+  }
+}
+
+export type ExperimentalCtwSourceControlUnstageResponse =
+  ExperimentalCtwSourceControlUnstageResponses[keyof ExperimentalCtwSourceControlUnstageResponses]
+
+export type ExperimentalCtwSourceControlGenerateMessageData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/ctw/source-control/generate-message"
+}
+
+export type ExperimentalCtwSourceControlGenerateMessageErrors = {
+  /**
+   * CtwSourceControlError | InvalidRequestError
+   */
+  400: CtwSourceControlError | InvalidRequestError
+}
+
+export type ExperimentalCtwSourceControlGenerateMessageError =
+  ExperimentalCtwSourceControlGenerateMessageErrors[keyof ExperimentalCtwSourceControlGenerateMessageErrors]
+
+export type ExperimentalCtwSourceControlGenerateMessageResponses = {
+  /**
+   * Success
+   */
+  200: {
+    message: string
+  }
+}
+
+export type ExperimentalCtwSourceControlGenerateMessageResponse =
+  ExperimentalCtwSourceControlGenerateMessageResponses[keyof ExperimentalCtwSourceControlGenerateMessageResponses]
+
+export type ExperimentalCtwSourceControlCommitData = {
+  body?: {
+    message: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/ctw/source-control/commit"
+}
+
+export type ExperimentalCtwSourceControlCommitErrors = {
+  /**
+   * CtwSourceControlError | InvalidRequestError
+   */
+  400: CtwSourceControlError | InvalidRequestError
+}
+
+export type ExperimentalCtwSourceControlCommitError =
+  ExperimentalCtwSourceControlCommitErrors[keyof ExperimentalCtwSourceControlCommitErrors]
+
+export type ExperimentalCtwSourceControlCommitResponses = {
+  /**
+   * Success
+   */
+  200: {
+    message: string
+  }
+}
+
+export type ExperimentalCtwSourceControlCommitResponse =
+  ExperimentalCtwSourceControlCommitResponses[keyof ExperimentalCtwSourceControlCommitResponses]
+
+export type ExperimentalCtwSourceControlPushData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/experimental/ctw/source-control/push"
+}
+
+export type ExperimentalCtwSourceControlPushErrors = {
+  /**
+   * CtwSourceControlError | InvalidRequestError
+   */
+  400: CtwSourceControlError | InvalidRequestError
+}
+
+export type ExperimentalCtwSourceControlPushError =
+  ExperimentalCtwSourceControlPushErrors[keyof ExperimentalCtwSourceControlPushErrors]
+
+export type ExperimentalCtwSourceControlPushResponses = {
+  /**
+   * Success
+   */
+  200: {
+    message: string
+  }
+}
+
+export type ExperimentalCtwSourceControlPushResponse =
+  ExperimentalCtwSourceControlPushResponses[keyof ExperimentalCtwSourceControlPushResponses]
 
 export type ExperimentalCapabilitiesGetData = {
   body?: never

@@ -29,6 +29,7 @@ import {
 } from "@/pages/session/v2/review-diff-kinds"
 import type { ReviewPanelV2State } from "@/pages/session/v2/review-panel-v2-state"
 import { applyFileListKeyDown, SessionFileListV2 } from "@/pages/session/v2/session-file-list-v2"
+import { CtwSourceControl } from "@/ctw/source-control/source-control"
 
 type ReviewDiff = SnapshotFileDiff | VcsFileDiff
 
@@ -51,6 +52,8 @@ export type ReviewPanelV2Props = {
   comments?: SessionReviewComment[]
   focusedComment?: SessionReviewFocus | null
   onFocusedCommentChange?: (focus: SessionReviewFocus | null) => void
+  sourceControl?: boolean
+  onSourceControlChanged?: () => void
 }
 
 export function ReviewPanelV2(props: ReviewPanelV2Props) {
@@ -82,12 +85,12 @@ export function ReviewPanelV2(props: ReviewPanelV2Props) {
   const detailSource = createMemo(() => {
     const diff = sourceActiveItem()
     const load = props.loadDiff
-    if (!diff || !load || !reviewDiffNeedsLoad(diff)) return
+    if (!diff || !load || !reviewDiffNeedsLoad(diff)) return undefined
     return { diff, load, version: props.diffVersion }
   })
   const [loadedDiff] = createResource(detailSource, async ({ diff, load, version }) => {
     const value = await load(diff.file, version)
-    if (value?.file !== diff.file) return
+    if (value?.file !== diff.file) return undefined
     return { source: diff, version, value }
   })
 
@@ -127,6 +130,9 @@ export function ReviewPanelV2(props: ReviewPanelV2Props) {
           searching={searching}
           kinds={treeKinds}
           activeDiff={activeDiff}
+          sourceControl={props.sourceControl}
+          diffVersion={props.diffVersion}
+          onSourceControlChanged={props.onSourceControlChanged}
         />
       }
       activeFile={activeDiff()}
@@ -177,6 +183,9 @@ function ReviewPanelV2Sidebar(props: {
   searching: () => boolean
   kinds: () => ReturnType<typeof reviewDiffKinds>
   activeDiff: () => string | undefined
+  sourceControl?: boolean
+  diffVersion?: number
+  onSourceControlChanged?: () => void
 }) {
   const language = useLanguage()
   const [explicitHighlight, setExplicitHighlight] = createSignal<string | undefined>()
@@ -212,42 +221,55 @@ function ReviewPanelV2Sidebar(props: {
       maxWidth={SESSION_REVIEW_V2_SIDEBAR_WIDTH_MAX}
     >
       <Show
-        when={props.diffsReady()}
+        when={props.sourceControl && props.onSourceControlChanged}
         fallback={
-          <div class="px-2 py-2 text-12-regular text-text-weak">
-            {language.t("common.loading")}
-            {language.t("common.loading.ellipsis")}
-          </div>
+          <Show
+            when={props.diffsReady()}
+            fallback={
+              <div class="px-2 py-2 text-12-regular text-text-weak">
+                {language.t("common.loading")}
+                {language.t("common.loading.ellipsis")}
+              </div>
+            }
+          >
+            <Show
+              when={props.searching()}
+              fallback={
+                <FileTreeV2
+                  allowed={props.filteredFiles()}
+                  kinds={props.kinds()}
+                  draggable={false}
+                  active={props.activeDiff()}
+                  onFileClick={(node) => props.onSelectFile(node.path)}
+                />
+              }
+            >
+              <Show
+                when={props.filteredFiles().length > 0}
+                fallback={<div class="px-2 py-2 text-12-regular text-text-weak">{language.t("palette.empty")}</div>}
+              >
+                <SessionFileListV2
+                  files={props.filteredFiles()}
+                  kinds={props.kinds()}
+                  active={props.activeDiff()}
+                  highlighted={highlightedPath()}
+                  onFileClick={(path) => {
+                    setExplicitHighlight(path)
+                    props.onSelectFile(path)
+                  }}
+                />
+              </Show>
+            </Show>
+          </Show>
         }
       >
-        <Show
-          when={props.searching()}
-          fallback={
-            <FileTreeV2
-              allowed={props.filteredFiles()}
-              kinds={props.kinds()}
-              draggable={false}
-              active={props.activeDiff()}
-              onFileClick={(node) => props.onSelectFile(node.path)}
-            />
-          }
-        >
-          <Show
-            when={props.filteredFiles().length > 0}
-            fallback={<div class="px-2 py-2 text-12-regular text-text-weak">{language.t("palette.empty")}</div>}
-          >
-            <SessionFileListV2
-              files={props.filteredFiles()}
-              kinds={props.kinds()}
-              active={props.activeDiff()}
-              highlighted={highlightedPath()}
-              onFileClick={(path) => {
-                setExplicitHighlight(path)
-                props.onSelectFile(path)
-              }}
-            />
-          </Show>
-        </Show>
+        <CtwSourceControl
+          activeFile={props.activeDiff()}
+          filter={props.state.filter()}
+          version={props.diffVersion}
+          onSelectFile={props.onSelectFile}
+          onChanged={() => props.onSourceControlChanged?.()}
+        />
       </Show>
     </SessionReviewV2Sidebar>
   )

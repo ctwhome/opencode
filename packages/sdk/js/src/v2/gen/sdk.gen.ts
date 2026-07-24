@@ -38,6 +38,18 @@ import type {
   ExperimentalConsoleSwitchOrgResponses,
   ExperimentalControlPlaneMoveSessionErrors,
   ExperimentalControlPlaneMoveSessionResponses,
+  ExperimentalCtwSourceControlCommitErrors,
+  ExperimentalCtwSourceControlCommitResponses,
+  ExperimentalCtwSourceControlGenerateMessageErrors,
+  ExperimentalCtwSourceControlGenerateMessageResponses,
+  ExperimentalCtwSourceControlPushErrors,
+  ExperimentalCtwSourceControlPushResponses,
+  ExperimentalCtwSourceControlStageErrors,
+  ExperimentalCtwSourceControlStageResponses,
+  ExperimentalCtwSourceControlStatusErrors,
+  ExperimentalCtwSourceControlStatusResponses,
+  ExperimentalCtwSourceControlUnstageErrors,
+  ExperimentalCtwSourceControlUnstageResponses,
   ExperimentalProjectCopyGenerateNameErrors,
   ExperimentalProjectCopyGenerateNameResponses,
   ExperimentalResourceListErrors,
@@ -662,6 +674,203 @@ export class ControlPlane extends HeyApiClient {
   }
 }
 
+export class CtwSourceControl extends HeyApiClient {
+  public status<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      ExperimentalCtwSourceControlStatusResponses,
+      ExperimentalCtwSourceControlStatusErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/ctw/source-control/status",
+      ...options,
+      ...params,
+    })
+  }
+
+  public stage<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      files?: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "files" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExperimentalCtwSourceControlStageResponses,
+      ExperimentalCtwSourceControlStageErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/ctw/source-control/stage",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  public unstage<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      files?: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "files" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExperimentalCtwSourceControlUnstageResponses,
+      ExperimentalCtwSourceControlUnstageErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/ctw/source-control/unstage",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  public generateMessage<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExperimentalCtwSourceControlGenerateMessageResponses,
+      ExperimentalCtwSourceControlGenerateMessageErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/ctw/source-control/generate-message",
+      ...options,
+      ...params,
+    })
+  }
+
+  public commit<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      message?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "message" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExperimentalCtwSourceControlCommitResponses,
+      ExperimentalCtwSourceControlCommitErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/ctw/source-control/commit",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  public push<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      ExperimentalCtwSourceControlPushResponses,
+      ExperimentalCtwSourceControlPushErrors,
+      ThrowOnError
+    >({
+      url: "/experimental/ctw/source-control/push",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Capabilities extends HeyApiClient {
   /**
    * Get experimental capabilities
@@ -1249,6 +1458,11 @@ export class Experimental extends HeyApiClient {
   private _controlPlane?: ControlPlane
   get controlPlane(): ControlPlane {
     return (this._controlPlane ??= new ControlPlane({ client: this.client }))
+  }
+
+  private _ctwSourceControl?: CtwSourceControl
+  get ctwSourceControl(): CtwSourceControl {
+    return (this._ctwSourceControl ??= new CtwSourceControl({ client: this.client }))
   }
 
   private _capabilities?: Capabilities

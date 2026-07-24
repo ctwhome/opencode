@@ -135,7 +135,8 @@ export function CtwSidebar(): JSX.Element {
       return
     }
     if (event.key !== "Tab") return
-    const root = event.currentTarget as HTMLElement
+    const root = event.currentTarget
+    if (!(root instanceof HTMLElement)) return
     const focusable = mobileFocusable(root)
     const first = focusable[0]
     const last = focusable.at(-1)
@@ -281,13 +282,13 @@ function SidebarPanel(props: { mobile?: boolean }) {
   let panel!: HTMLDivElement
   const activeSession = createMemo(() => {
     const sessionID = activeSessionID()
-    if (!sessionID) return
+    if (!sessionID) return undefined
     return sync().session.lineage.peek(sessionID)?.session ?? sync().session.get(sessionID)
   })
   const activeProject = createMemo(() => {
     const session = activeSession()
-    if (!session) return
-    return projectForDirectory(projects(), session.directory)
+    if (!session) return undefined
+    return projectForDirectory(projects(), session.directory, session.projectID)
   })
   const selectedProject = createMemo(
     () =>
@@ -304,7 +305,11 @@ function SidebarPanel(props: { mobile?: boolean }) {
   function projectSessions(project: LocalProject) {
     const directories = [project.worktree, ...(project.sandboxes ?? [])]
     const sessions = directories.flatMap((directory) => projectChildren().get(directory)?.session ?? [])
-    return visibleProjectSessions([...new Map(sessions.map((session) => [session.id, session])).values()], directories)
+    return visibleProjectSessions(
+      [...new Map(sessions.map((session) => [session.id, session])).values()],
+      directories,
+      project.id,
+    )
   }
 
   const selectedSessions = createMemo(() => {
@@ -398,7 +403,7 @@ function SidebarPanel(props: { mobile?: boolean }) {
                   type="button"
                   data-component="ctw-sidebar-project"
                   data-selected={selectedProject()?.worktree === project.worktree ? "" : undefined}
-                  class="group relative flex size-10 items-center justify-center overflow-hidden rounded-lg border border-transparent p-1 transition-colors duration-150 ease-out hover:border-v2-border-border-muted hover:bg-v2-background-bg-layer-02 focus-visible:outline focus-visible:outline-2 focus-visible:outline-v2-border-border-focus data-[selected]:border-2 data-[selected]:border-v2-border-border-strong"
+                  class="group relative flex size-12 items-center justify-center overflow-hidden rounded-lg border border-transparent p-1 transition-colors duration-150 ease-out hover:border-v2-border-border-muted hover:bg-v2-background-bg-layer-02 focus-visible:outline focus-visible:outline-2 focus-visible:outline-v2-border-border-focus data-[selected]:border-2 data-[selected]:border-v2-border-border-strong"
                   title={projectLabel(project)}
                   aria-label={projectLabel(project)}
                   aria-pressed={selectedProject()?.worktree === project.worktree}
@@ -406,6 +411,7 @@ function SidebarPanel(props: { mobile?: boolean }) {
                 >
                   <ProjectAvatar
                     class="size-8"
+                    style={{ width: "32px", height: "32px" }}
                     fallback={projectLabel(project)}
                     src={project.icon?.override ?? project.icon?.url}
                     variant={getProjectAvatarVariant(project.icon?.color)}
@@ -415,33 +421,33 @@ function SidebarPanel(props: { mobile?: boolean }) {
             </For>
             <button
               type="button"
-              class="flex size-10 items-center justify-center rounded-lg text-v2-icon-icon-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-icon-icon-base"
+              class="flex size-12 items-center justify-center rounded-lg text-v2-icon-icon-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-icon-icon-base"
               title={language.t("command.project.open")}
               aria-label={language.t("command.project.open")}
               onClick={addProject}
             >
-              <IconV2 name="plus" />
+              <IconV2 name="plus" size="large" />
             </button>
           </div>
         </div>
         <div class="flex w-full shrink-0 flex-col items-center gap-2 px-3 pb-6 pt-3">
           <button
             type="button"
-            class="flex size-10 items-center justify-center rounded-lg text-v2-icon-icon-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-icon-icon-base"
+            class="flex size-12 items-center justify-center rounded-lg text-v2-icon-icon-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-icon-icon-base"
             title={language.t("command.settings.open")}
             aria-label={language.t("command.settings.open")}
             onClick={openSettings}
           >
-            <IconV2 name="settings-gear" />
+            <IconV2 name="settings-gear" size="large" />
           </button>
           <button
             type="button"
-            class="flex size-10 items-center justify-center rounded-lg text-v2-icon-icon-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-icon-icon-base"
+            class="flex size-12 items-center justify-center rounded-lg text-v2-icon-icon-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-icon-icon-base"
             title={language.t("sidebar.help")}
             aria-label={language.t("sidebar.help")}
             onClick={() => platform.openLink("https://opencode.ai/desktop-feedback")}
           >
-            <IconV2 name="help" />
+            <IconV2 name="help" size="large" />
           </button>
         </div>
       </div>

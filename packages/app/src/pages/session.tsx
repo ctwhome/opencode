@@ -1313,6 +1313,10 @@ export default function Page() {
       return layout.review.diffStyle()
     },
     onDiffStyleChange: layout.review.setDiffStyle,
+    get sourceControl() {
+      return reviewMode() === "git"
+    },
+    onSourceControlChanged: refreshVcs,
     state: reviewV2State,
     onLineComment: (comment: SessionReviewLineComment) => addCommentToContext({ ...comment, origin: "review" }),
     onLineCommentUpdate: updateCommentInContext,
