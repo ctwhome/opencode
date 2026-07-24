@@ -2,17 +2,23 @@ import { describe, expect, test } from "bun:test"
 import {
   isAppUpgrade,
   layoutTransitionState,
+  legacyLayoutPinned,
   maximumSunsetTimeout,
   newLayoutDesignsDefault,
   nextSunsetCheckDelay,
+  oldInterfaceSunset,
   resolveNewLayoutDesigns,
   shouldDisplayTabsToast,
   shouldEnableNewLayout,
 } from "./settings"
 
 describe("layout transition", () => {
-  test("blank profiles default to the new layout", () => {
-    expect(newLayoutDesignsDefault).toBe(true)
+  test("custom builds pin the legacy layout", () => {
+    expect(legacyLayoutPinned).toBe(true)
+    expect(newLayoutDesignsDefault).toBe(false)
+    expect(oldInterfaceSunset).toBeNull()
+    expect(resolveNewLayoutDesigns(false, true, true)).toBe(false)
+    expect(resolveNewLayoutDesigns(true, true, true)).toBe(false)
   })
 
   test("hides the transition until a sunset is scheduled", () => {
@@ -23,16 +29,16 @@ describe("layout transition", () => {
     expect(layoutTransitionState(true, true, false, false)).toEqual({ available: true, notice: false })
   })
 
-  test("preserves explicit and default layout preferences", () => {
-    expect(resolveNewLayoutDesigns(false, false, true)).toBe(false)
-    expect(resolveNewLayoutDesigns(false, undefined, false)).toBe(false)
-    expect(resolveNewLayoutDesigns(false, undefined, true)).toBe(true)
+  test("preserves explicit and default layout preferences when unpinned", () => {
+    expect(resolveNewLayoutDesigns(false, false, true, false)).toBe(false)
+    expect(resolveNewLayoutDesigns(false, undefined, false, false)).toBe(false)
+    expect(resolveNewLayoutDesigns(false, undefined, true, false)).toBe(true)
   })
 
-  test("sunset replaces the toggle with a dismissible notice", () => {
+  test("sunset replaces the toggle with a dismissible notice when unpinned", () => {
     expect(layoutTransitionState(true, true, true, false)).toEqual({ available: false, notice: true })
     expect(layoutTransitionState(true, true, true, true)).toEqual({ available: false, notice: false })
-    expect(resolveNewLayoutDesigns(true, false)).toBe(true)
+    expect(resolveNewLayoutDesigns(true, false, true, false)).toBe(true)
   })
 
   test("caps checks for sunsets beyond the browser timeout limit", () => {

@@ -56,10 +56,11 @@ export interface Settings {
 export const monoDefault = "System Mono"
 export const sansDefault = "System Sans"
 export const terminalDefault = "JetBrainsMono Nerd Font Mono"
-const legacyNewLayoutDesignsDefault = import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"
-export const newLayoutDesignsDefault = true
-// Existing users can switch layouts until local midnight on this date. Set new Date(YYYY, M-1, D) to show.
-export const oldInterfaceSunset = new Date(2026, 8, 14)
+export const legacyLayoutPinned = true
+const legacyNewLayoutDesignsDefault = legacyLayoutPinned ? false : import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"
+export const newLayoutDesignsDefault = !legacyLayoutPinned
+// Upstream retires the legacy interface on September 14, 2026. This custom build keeps it available.
+export const oldInterfaceSunset: Date | null = legacyLayoutPinned ? null : new Date(2026, 8, 14)
 const newLayoutDesignsUpgradeCutoff = "1.17.19"
 
 function compareVersions(a: string, b: string) {
@@ -116,7 +117,13 @@ export function nextSunsetCheckDelay(sunset: number, now: number) {
   return Math.min(Math.max(0, sunset - now), maximumSunsetTimeout)
 }
 
-export function resolveNewLayoutDesigns(retired: boolean, preference: boolean | undefined, fallback = true) {
+export function resolveNewLayoutDesigns(
+  retired: boolean,
+  preference: boolean | undefined,
+  fallback = true,
+  pinned = legacyLayoutPinned,
+) {
+  if (pinned) return false
   if (retired) return true
   return preference ?? fallback
 }
@@ -243,7 +250,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
     const layoutTransitionEligible = withFallback(() => store.general?.layoutTransitionEligible, false)
     const newInterfaceNoticeDismissed = withFallback(() => store.general?.newInterfaceNoticeDismissed, false)
     const layoutUpgrade = createMemo(() =>
-      launchState.classified && !launchState.migrationApplied
+      !legacyLayoutPinned && launchState.classified && !launchState.migrationApplied
         ? shouldEnableNewLayout(launchState.previous, platform.version)
         : false,
     )
@@ -251,6 +258,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       layoutTransitionState(!!sunset, layoutTransitionEligible(), oldInterfaceRetired(), newInterfaceNoticeDismissed()),
     )
     const newLayoutDesigns = createMemo(() => {
+      if (legacyLayoutPinned) return false
       if (layoutUpgrade()) return true
       if (!ready() && !oldInterfaceRetired()) return legacyNewLayoutDesignsDefault
       if (!layoutTransitionClassified()) {
@@ -405,7 +413,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         },
         newLayoutDesigns,
         setNewLayoutDesigns(value: boolean) {
-          const next = oldInterfaceRetired() ? true : value
+          const next = legacyLayoutPinned ? false : oldInterfaceRetired() ? true : value
           if (newLayoutDesigns() === next) return
           setStore("general", "newLayoutDesigns", next)
           if (typeof window !== "undefined") setTimeout(() => window.location.reload())
