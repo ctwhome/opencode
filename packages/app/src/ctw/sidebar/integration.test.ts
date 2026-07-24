@@ -55,4 +55,21 @@ describe("custom sidebar integration seam", () => {
     expect(sidebar).toContain("edgeSwipeShouldOpen")
     expect(sidebar).toContain("translate3d(calc(-100% +")
   })
+
+  test("keeps the v1.17 project rail and selected-project session panel", async () => {
+    const sidebar = await Bun.file(sidebarPath).text()
+
+    expect(sidebar).toContain('data-component="ctw-sidebar-project-rail"')
+    expect(sidebar).toContain('data-component="ctw-sidebar-project-panel"')
+    expect(sidebar).toContain('class="size-8"')
+    expect(sidebar).toContain("selectedProject()")
+    expect(sidebar).toContain("selectedSessions()")
+    expect(sidebar).toContain("data-active-session-id={activeSessionID()}")
+    expect(sidebar).not.toContain("border-v2-border-border-weak")
+    expect(sidebar).toContain("transition-colors duration-150 ease-out")
+    expect(sidebar).toContain('<Spinner class="size-[15px]" />')
+    expect(sidebar).not.toContain("server.projects.last() !== project.worktree")
+    expect(sidebar).toContain("setSelectedProjectWorktree(project.worktree)")
+    expect(sidebar).not.toContain("if (project) server.projects.touch(project.worktree)")
+  })
 })

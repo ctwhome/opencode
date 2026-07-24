@@ -11,6 +11,8 @@ describe("CTW sidebar client version", () => {
     expect(sidebar).toContain('data-component="ctw-sidebar-version"')
     expect(sidebar).toContain("import.meta.env.VITE_OPENCODE_VERSION || platform.version")
     expect(sidebar).toContain("OpenCode v{version()}")
+    expect(sidebar).toContain("onClick={() => void platform.restart()}")
+    expect(sidebar).toContain("M13.25 3.75V7.75H9.25")
     expect(build).toContain("VITE_OPENCODE_VERSION=${Script.version}")
   })
 })

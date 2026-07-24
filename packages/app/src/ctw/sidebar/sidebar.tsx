@@ -1,6 +1,7 @@
-import { For, Show, createEffect, createMemo, createSignal, onCleanup, type JSX } from "solid-js"
+import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, type JSX } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Icon } from "@opencode-ai/ui/icon"
+import { Spinner } from "@opencode-ai/ui/spinner"
 import { ProjectAvatar } from "@opencode-ai/ui/v2/project-avatar-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { useDirectoryPicker } from "@/components/directory-picker"
@@ -15,10 +16,12 @@ import { useTabs } from "@/context/tabs"
 import { sessionTitle } from "@/utils/session-title"
 import { applySidebarSessionSelection } from "./selection"
 import {
+  beginDrawerSwipe,
   beginEdgeSwipe,
   edgeSwipeOffset,
   edgeSwipeProgress,
   edgeSwipeShouldOpen,
+  settleEdgeSwipe,
   updateEdgeSwipe,
   type EdgeSwipeState,
 } from "./edge-swipe"
@@ -42,15 +45,15 @@ export function CtwSidebar(): JSX.Element {
 
   const mobileDrawerVisible = createMemo(() => layout.mobileSidebar.opened() || !!mobileSwipe())
   const mobileDrawerTransform = createMemo(() => {
-    if (layout.mobileSidebar.opened()) return "translate3d(0, 0, 0)"
     const swipe = mobileSwipe()
+    if (!swipe && layout.mobileSidebar.opened()) return "translate3d(0, 0, 0)"
     const offset = swipe ? edgeSwipeOffset(swipe) : 0
     return `translate3d(calc(-100% + ${offset}px), 0, 0)`
   })
   const mobileBackdropOpacity = createMemo(() => {
-    if (layout.mobileSidebar.opened()) return 0.3
     const swipe = mobileSwipe()
-    return swipe ? edgeSwipeProgress(swipe) * 0.3 : 0
+    if (swipe) return edgeSwipeProgress(swipe) * 0.3
+    return layout.mobileSidebar.opened() ? 0.3 : 0
   })
 
   function clearMobileSwipeTimer() {
@@ -62,36 +65,34 @@ export function CtwSidebar(): JSX.Element {
   function finishMobileSwipe(swipe: EdgeSwipeState, open: boolean) {
     clearMobileSwipeTimer()
     setMobileSwipeSettling(true)
-    if (open) {
-      layout.mobileSidebar.show()
-      setMobileSwipe(undefined)
-    } else {
-      setMobileSwipe({ ...swipe, currentX: swipe.startX, currentAt: performance.now() })
-    }
+    setMobileSwipe(settleEdgeSwipe(swipe, open, performance.now()))
     mobileSwipeTimer = setTimeout(() => {
-      if (!open) setMobileSwipe(undefined)
+      if (open) layout.mobileSidebar.show()
+      else layout.mobileSidebar.hide()
+      setMobileSwipe(undefined)
       setMobileSwipeSettling(false)
       mobileSwipeTimer = undefined
     }, 200)
   }
 
-  function startMobileSwipe(event: TouchEvent & { currentTarget: HTMLDivElement }) {
-    if (layout.mobileSidebar.opened() || event.touches.length !== 1) return
+  function startMobileSwipe(event: TouchEvent) {
+    if (event.touches.length !== 1) return
     const touch = event.touches[0]
     if (!touch) return
-    const swipe = beginEdgeSwipe({
+    const input = {
       x: touch.clientX,
       y: touch.clientY,
       at: event.timeStamp,
       width: Math.min(380, window.innerWidth),
-    })
+    }
+    const swipe = layout.mobileSidebar.opened() ? beginDrawerSwipe(input) : beginEdgeSwipe(input)
     if (!swipe) return
     clearMobileSwipeTimer()
     setMobileSwipeSettling(false)
     setMobileSwipe(swipe)
   }
 
-  function moveMobileSwipe(event: TouchEvent & { currentTarget: HTMLDivElement }) {
+  function moveMobileSwipe(event: TouchEvent) {
     const swipe = mobileSwipe()
     const touch = event.touches[0]
     if (!swipe || !touch || event.touches.length !== 1) return
@@ -104,27 +105,27 @@ export function CtwSidebar(): JSX.Element {
     setMobileSwipe(next)
   }
 
-  function endMobileSwipe(event: TouchEvent & { currentTarget: HTMLDivElement }) {
+  function endMobileSwipe(event: TouchEvent) {
     const swipe = mobileSwipe()
     if (!swipe) return
     const touch = event.changedTouches[0]
-    const next = touch
-      ? updateEdgeSwipe(swipe, { x: touch.clientX, y: touch.clientY, at: event.timeStamp })
-      : swipe
+    const next = touch ? updateEdgeSwipe(swipe, { x: touch.clientX, y: touch.clientY, at: event.timeStamp }) : swipe
     finishMobileSwipe(next, edgeSwipeShouldOpen(next))
   }
 
   function cancelMobileSwipe() {
     const swipe = mobileSwipe()
-    if (swipe) finishMobileSwipe(swipe, false)
+    if (swipe) finishMobileSwipe(swipe, swipe.initiallyOpen)
   }
 
   onCleanup(clearMobileSwipeTimer)
 
   function mobileFocusable(root: HTMLElement) {
-    return [...root.querySelectorAll<HTMLElement>("button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])")].filter(
-      (element) => element.offsetWidth > 0 || element.offsetHeight > 0,
-    )
+    return [
+      ...root.querySelectorAll<HTMLElement>(
+        "button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])",
+      ),
+    ].filter((element) => element.offsetWidth > 0 || element.offsetHeight > 0)
   }
 
   function handleMobileKeys(event: KeyboardEvent) {
@@ -157,16 +158,16 @@ export function CtwSidebar(): JSX.Element {
   })
 
   createEffect(() => {
-    void loadSidebarProjectSessions(layout.projects.list(), (directory) => sync().project.loadSessions(directory)).catch(
-      () => undefined,
-    )
+    void loadSidebarProjectSessions(layout.projects.list(), (directory) =>
+      sync().project.loadSessions(directory),
+    ).catch(() => undefined)
   })
 
   return (
     <>
       <aside
         data-component="ctw-sidebar-desktop"
-        class="hidden xl:flex min-h-0 shrink-0 border-r border-v2-border-border-weak bg-v2-background-bg-base"
+        class="hidden xl:flex min-h-0 shrink-0 border-r border-v2-border-border-muted bg-v2-background-bg-base"
       >
         <SidebarPanel />
       </aside>
@@ -210,12 +211,16 @@ export function CtwSidebar(): JSX.Element {
             inert={!layout.mobileSidebar.opened()}
             aria-label="Projects and sessions"
             classList={{
-              "relative h-full w-full max-w-[380px] border-r border-v2-border-border-weak bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)] will-change-transform": true,
+              "relative h-full w-full max-w-[380px] border-r border-v2-border-border-muted bg-v2-background-bg-base shadow-[var(--v2-elevation-raised)] will-change-transform": true,
               "transition-transform duration-200 ease-out": mobileSwipeSettling(),
             }}
-            style={{ transform: mobileDrawerTransform() }}
+            style={{ transform: mobileDrawerTransform(), "touch-action": "pan-y" }}
             onKeyDown={handleMobileKeys}
             onClick={(event) => event.stopPropagation()}
+            onTouchStart={startMobileSwipe}
+            onTouchMove={moveMobileSwipe}
+            onTouchEnd={endMobileSwipe}
+            onTouchCancel={cancelMobileSwipe}
           >
             <SidebarPanel mobile />
           </aside>
@@ -225,30 +230,24 @@ export function CtwSidebar(): JSX.Element {
   )
 }
 
-function SidebarSessionRow(props: {
-  session: SidebarSession
-  onSelect: () => void
-}) {
+function SidebarSessionRow(props: { session: SidebarSession; onSelect: () => void }) {
   const sync = useServerSync()
+  const working = createMemo(() => sync().session.data.session_working(props.session.id))
 
   return (
     <button
       type="button"
       data-component="ctw-sidebar-session"
       data-session-id={props.session.id}
-      class="group/session flex w-full min-w-0 items-center gap-2 rounded-md px-3 py-1.5 text-left hover:bg-v2-background-bg-hover"
+      class="group/session flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02"
       onClick={props.onSelect}
     >
-      <span class="relative flex size-3 shrink-0 items-center justify-center" aria-hidden="true">
-        <span
-          classList={{
-            "size-1.5 rounded-full": true,
-            "bg-v2-icon-icon-interactive": sync().session.data.session_working(props.session.id),
-            "bg-v2-icon-icon-muted": !sync().session.data.session_working(props.session.id),
-          }}
-        />
-      </span>
-      <span class="min-w-0 flex-1 truncate text-13-regular text-v2-text-text-base">
+      <Show when={working()}>
+        <span class="flex size-4 shrink-0 items-center justify-center text-v2-icon-icon-accent" aria-hidden="true">
+          <Spinner class="size-[15px]" />
+        </span>
+      </Show>
+      <span class="min-w-0 flex-1 truncate text-14-regular text-v2-text-text-base">
         {sessionTitle(props.session.title)}
       </span>
     </button>
@@ -265,6 +264,7 @@ function SidebarPanel(props: { mobile?: boolean }) {
   const tabs = useTabs()
   const pickDirectory = useDirectoryPicker()
   const openSettings = useSettingsDialog()
+  const [selectedProjectWorktree, setSelectedProjectWorktree] = createSignal(server.projects.last())
   const expanded = createMemo(() => props.mobile || layout.sidebar.opened())
   const clientVersion = () => import.meta.env.VITE_OPENCODE_VERSION || platform.version
   const projects = createMemo(() => layout.projects.list())
@@ -289,23 +289,46 @@ function SidebarPanel(props: { mobile?: boolean }) {
     if (!session) return
     return projectForDirectory(projects(), session.directory)
   })
-  const width = createMemo(() => Math.min(420, Math.max(280, layout.sidebar.width())))
+  const selectedProject = createMemo(
+    () =>
+      projects().find((project) => project.worktree === selectedProjectWorktree()) ?? activeProject() ?? projects()[0],
+  )
+  const selectedProjectPath = createMemo(() => {
+    const project = selectedProject()
+    if (!project) return ""
+    const home = sync().data.path.home
+    return home ? project.worktree.replace(home, "~") : project.worktree
+  })
+  const width = createMemo(() => Math.min(420, Math.max(344, layout.sidebar.width())))
 
   function projectSessions(project: LocalProject) {
     const directories = [project.worktree, ...(project.sandboxes ?? [])]
     const sessions = directories.flatMap((directory) => projectChildren().get(directory)?.session ?? [])
-    return visibleProjectSessions(
-      [...new Map(sessions.map((session) => [session.id, session])).values()],
-      directories,
-    )
+    return visibleProjectSessions([...new Map(sessions.map((session) => [session.id, session])).values()], directories)
   }
+
+  const selectedSessions = createMemo(() => {
+    const project = selectedProject()
+    return project ? projectSessions(project) : []
+  })
+
+  createEffect(
+    on(
+      () => activeProject()?.worktree,
+      (worktree) => {
+        if (worktree) setSelectedProjectWorktree(worktree)
+      },
+    ),
+  )
 
   createEffect(() => {
     const active = activeSessionID()
+    const project = selectedProject()?.worktree
     const sessionIDs = projects()
       .flatMap((project) => projectSessions(project))
       .map((session) => session.id)
       .join("\0")
+    void project
     void sessionIDs
     queueMicrotask(() => {
       if (panel.isConnected) applySidebarSessionSelection(panel, active)
@@ -313,8 +336,7 @@ function SidebarPanel(props: { mobile?: boolean }) {
   })
 
   function selectProject(project: LocalProject) {
-    server.projects.touch(project.worktree)
-    layout.projects.expand(project.worktree)
+    setSelectedProjectWorktree(project.worktree)
     layout.sidebar.open()
   }
 
@@ -342,9 +364,11 @@ function SidebarPanel(props: { mobile?: boolean }) {
         const directories = Array.isArray(result) ? result : result ? [result] : []
         for (const directory of directories) {
           layout.projects.open(directory)
-          server.projects.touch(directory)
         }
-        if (directories.length > 0) layout.sidebar.open()
+        const directory = directories.at(-1)
+        if (!directory) return
+        setSelectedProjectWorktree(directory)
+        layout.sidebar.open()
       },
     })
   }
@@ -359,179 +383,146 @@ function SidebarPanel(props: { mobile?: boolean }) {
       ref={panel}
       data-component="ctw-sidebar-panel"
       data-active-session-id={activeSessionID()}
-      class="flex h-full min-h-0 flex-col overflow-hidden"
-      style={{ width: props.mobile ? "100%" : expanded() ? `${width()}px` : "56px" }}
+      class="flex h-full min-h-0 overflow-hidden bg-v2-background-bg-base"
+      style={{ width: props.mobile ? "100%" : expanded() ? `${width()}px` : "64px" }}
     >
-      <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-2">
-        <Show
-          when={expanded()}
-          fallback={
-            <div class="flex flex-col items-center gap-1 px-2">
-              <For each={projects()}>
-                {(project) => (
-                  <button
-                    type="button"
-                    data-component="ctw-sidebar-project-rail"
-                    data-selected={activeProject()?.worktree === project.worktree ? "" : undefined}
-                    class="group relative flex size-10 items-center justify-center rounded-md hover:bg-v2-background-bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-v2-border-border-focus data-[selected]:bg-v2-background-bg-selected"
-                    title={projectLabel(project)}
-                    aria-label={projectLabel(project)}
-                    onClick={() => selectProject(project)}
-                  >
-                    <ProjectAvatar
-                      fallback={projectLabel(project)}
-                      src={project.icon?.override ?? project.icon?.url}
-                      variant={getProjectAvatarVariant(project.icon?.color)}
-                    />
-                  </button>
-                )}
-              </For>
-            </div>
-          }
-        >
-          <div class="flex flex-col gap-1 px-2">
+      <div
+        data-component="ctw-sidebar-project-rail"
+        class="flex w-16 shrink-0 flex-col items-center overflow-hidden border-r border-v2-border-border-muted bg-v2-background-bg-base"
+      >
+        <div class="min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
+          <div class="flex flex-col items-center gap-3">
             <For each={projects()}>
-              {(project) => {
-                const sessions = createMemo(() => projectSessions(project))
-                const selected = createMemo(() => activeProject()?.worktree === project.worktree)
-                return (
-                  <section
-                    data-component="ctw-sidebar-project"
-                    data-selected={selected() ? "" : undefined}
-                    class="rounded-lg border border-transparent data-[selected]:border-v2-border-border-weak data-[selected]:bg-v2-background-bg-subtle"
-                  >
-                    <div class="group flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-v2-background-bg-hover">
-                      <button
-                        type="button"
-                        class="flex min-w-0 flex-1 items-center gap-2 text-left"
-                        aria-expanded={project.expanded}
-                        onClick={() => {
-                          server.projects.touch(project.worktree)
-                          if (project.expanded) layout.projects.collapse(project.worktree)
-                          if (!project.expanded) layout.projects.expand(project.worktree)
-                        }}
-                      >
-                        <ProjectAvatar
-                          fallback={projectLabel(project)}
-                          src={project.icon?.override ?? project.icon?.url}
-                          variant={getProjectAvatarVariant(project.icon?.color)}
-                        />
-                        <span class="min-w-0 flex-1 truncate text-14-medium text-v2-text-text-strong">
-                          {projectLabel(project)}
-                        </span>
-                        <IconV2
-                          name="chevron-down"
-                          size="small"
-                          classList={{
-                            "shrink-0 text-v2-icon-icon-muted transition-transform": true,
-                            "-rotate-90": !project.expanded,
-                          }}
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        class="flex size-7 shrink-0 items-center justify-center rounded-md text-v2-icon-icon-muted opacity-0 hover:bg-v2-background-bg-active hover:text-v2-icon-icon-base group-hover:opacity-100 focus-visible:opacity-100"
-                        title={language.t("command.session.new")}
-                        aria-label={language.t("command.session.new")}
-                        onClick={() => newSession(project)}
-                      >
-                        <IconV2 name="plus" size="small" />
-                      </button>
-                    </div>
-                    <Show when={project.expanded}>
-                      <div class="pb-1 pl-3 pr-1">
-                        <For
-                          each={sessions()}
-                          fallback={
-                            <button
-                              type="button"
-                              class="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-13-regular text-v2-text-text-muted hover:bg-v2-background-bg-hover"
-                              onClick={() => newSession(project)}
-                            >
-                              <IconV2 name="edit" size="small" />
-                              {language.t("command.session.new")}
-                            </button>
-                          }
-                        >
-                          {(session) => (
-                            <SidebarSessionRow
-                              session={session}
-                              onSelect={() => selectSession(project, session.id)}
-                            />
-                          )}
-                        </For>
-                      </div>
-                    </Show>
-                  </section>
-                )
-              }}
+              {(project) => (
+                <button
+                  type="button"
+                  data-component="ctw-sidebar-project"
+                  data-selected={selectedProject()?.worktree === project.worktree ? "" : undefined}
+                  class="group relative flex size-10 items-center justify-center overflow-hidden rounded-lg border border-transparent p-1 transition-colors duration-150 ease-out hover:border-v2-border-border-muted hover:bg-v2-background-bg-layer-02 focus-visible:outline focus-visible:outline-2 focus-visible:outline-v2-border-border-focus data-[selected]:border-2 data-[selected]:border-v2-border-border-strong"
+                  title={projectLabel(project)}
+                  aria-label={projectLabel(project)}
+                  aria-pressed={selectedProject()?.worktree === project.worktree}
+                  onClick={() => selectProject(project)}
+                >
+                  <ProjectAvatar
+                    class="size-8"
+                    fallback={projectLabel(project)}
+                    src={project.icon?.override ?? project.icon?.url}
+                    variant={getProjectAvatarVariant(project.icon?.color)}
+                  />
+                </button>
+              )}
             </For>
+            <button
+              type="button"
+              class="flex size-10 items-center justify-center rounded-lg text-v2-icon-icon-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-icon-icon-base"
+              title={language.t("command.project.open")}
+              aria-label={language.t("command.project.open")}
+              onClick={addProject}
+            >
+              <IconV2 name="plus" />
+            </button>
           </div>
-        </Show>
-      </div>
-      <div class="shrink-0 border-t border-v2-border-border-weak p-2">
-        <div classList={{ "flex gap-1": expanded(), "flex flex-col items-center gap-1": !expanded() }}>
-          <Show when={props.mobile && activeSessionID()}>
-            <button
-              type="button"
-              data-component="ctw-sidebar-terminal"
-              class="flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-md text-v2-icon-icon-muted hover:bg-v2-background-bg-hover hover:text-v2-icon-icon-base"
-              title={language.t("command.terminal.toggle")}
-              aria-label={language.t("command.terminal.toggle")}
-              aria-controls="terminal-panel"
-              onClick={toggleTerminal}
-            >
-              <Icon name="terminal" size="small" />
-              <span class="truncate text-13-medium text-v2-text-text-base">{language.t("terminal.title")}</span>
-            </button>
-          </Show>
-          <Show when={!props.mobile}>
-            <button
-              type="button"
-              class="flex size-9 items-center justify-center rounded-md text-v2-icon-icon-muted hover:bg-v2-background-bg-hover hover:text-v2-icon-icon-base"
-              title={language.t("command.sidebar.toggle")}
-              aria-label={language.t("command.sidebar.toggle")}
-              aria-expanded={layout.sidebar.opened()}
-              onClick={layout.sidebar.toggle}
-            >
-              <IconV2
-                name="sidebar-right"
-                classList={{ "transition-transform": true, "rotate-180": layout.sidebar.opened() }}
-              />
-            </button>
-          </Show>
+        </div>
+        <div class="flex w-full shrink-0 flex-col items-center gap-2 px-3 pb-6 pt-3">
           <button
             type="button"
-            class="flex size-9 items-center justify-center rounded-md text-v2-icon-icon-muted hover:bg-v2-background-bg-hover hover:text-v2-icon-icon-base"
-            title={language.t("command.project.open")}
-            aria-label={language.t("command.project.open")}
-            onClick={addProject}
-          >
-            <IconV2 name="folder-add-left" />
-          </button>
-          <button
-            type="button"
-            class="flex size-9 items-center justify-center rounded-md text-v2-icon-icon-muted hover:bg-v2-background-bg-hover hover:text-v2-icon-icon-base"
+            class="flex size-10 items-center justify-center rounded-lg text-v2-icon-icon-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-icon-icon-base"
             title={language.t("command.settings.open")}
             aria-label={language.t("command.settings.open")}
             onClick={openSettings}
           >
             <IconV2 name="settings-gear" />
           </button>
+          <button
+            type="button"
+            class="flex size-10 items-center justify-center rounded-lg text-v2-icon-icon-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-icon-icon-base"
+            title={language.t("sidebar.help")}
+            aria-label={language.t("sidebar.help")}
+            onClick={() => platform.openLink("https://opencode.ai/desktop-feedback")}
+          >
+            <IconV2 name="help" />
+          </button>
         </div>
-        <Show when={expanded() && clientVersion()}>
-          {(version) => (
-            <div
-              data-component="ctw-sidebar-version"
-              data-build-version={version()}
-              class="mt-1 truncate px-1 text-center text-11-regular text-v2-text-text-muted"
-              title={`Loaded client build ${version()}`}
-            >
-              OpenCode v{version()}
-            </div>
-          )}
-        </Show>
       </div>
+
+      <Show when={expanded()}>
+        <div
+          data-component="ctw-sidebar-project-panel"
+          class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-v2-background-bg-base"
+        >
+          <Show when={selectedProject()} keyed>
+            {(project) => (
+              <>
+                <div class="shrink-0 px-5 pb-2 pt-4">
+                  <div class="truncate text-14-medium text-v2-text-text-strong">{projectLabel(project)}</div>
+                  <div class="truncate text-12-regular text-v2-text-text-muted" title={project.worktree}>
+                    {selectedProjectPath()}
+                  </div>
+                </div>
+                <div class="shrink-0 px-3 py-4">
+                  <button
+                    type="button"
+                    class="flex h-9 w-full items-center justify-center gap-2 rounded-md border border-v2-border-border-muted bg-v2-background-bg-base text-14-regular text-v2-text-text-base transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02"
+                    onClick={() => newSession(project)}
+                  >
+                    <IconV2 name="edit" size="small" class="text-v2-icon-icon-muted" />
+                    {language.t("command.session.new")}
+                  </button>
+                </div>
+                <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3">
+                  <For each={selectedSessions()}>
+                    {(session) => (
+                      <SidebarSessionRow session={session} onSelect={() => selectSession(project, session.id)} />
+                    )}
+                  </For>
+                </div>
+              </>
+            )}
+          </Show>
+
+          <Show when={props.mobile && activeSessionID()}>
+            <div class="shrink-0 border-t border-v2-border-border-muted p-2">
+              <button
+                type="button"
+                data-component="ctw-sidebar-terminal"
+                class="flex h-9 w-full items-center justify-center gap-2 rounded-md text-v2-icon-icon-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-icon-icon-base"
+                title={language.t("command.terminal.toggle")}
+                aria-label={language.t("command.terminal.toggle")}
+                aria-controls="terminal-panel"
+                onClick={toggleTerminal}
+              >
+                <Icon name="terminal" size="small" />
+                <span class="truncate text-13-medium text-v2-text-text-base">{language.t("terminal.title")}</span>
+              </button>
+            </div>
+          </Show>
+
+          <Show when={clientVersion()}>
+            {(version) => (
+              <button
+                type="button"
+                data-component="ctw-sidebar-version"
+                data-build-version={version()}
+                class="mx-3 mb-2 flex h-7 shrink-0 items-center justify-center gap-2 rounded-md px-2 text-11-regular text-v2-text-text-muted transition-colors duration-150 ease-out hover:bg-v2-background-bg-layer-02 hover:text-v2-text-text-base"
+                title={`Reload OpenCode ${version()}`}
+                aria-label={`Reload OpenCode ${version()}`}
+                onClick={() => void platform.restart()}
+              >
+                <svg viewBox="0 0 16 16" class="size-3.5 shrink-0" fill="none" aria-hidden="true">
+                  <path
+                    d="M13.25 3.75V7.75H9.25M13.25 7.75A5.5 5.5 0 1 0 11.64 11.64"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                <span class="truncate">OpenCode v{version()}</span>
+              </button>
+            )}
+          </Show>
+        </div>
+      </Show>
     </div>
   )
 }

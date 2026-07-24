@@ -22,7 +22,7 @@ describe("custom sidebar session selection", () => {
     expect(rows[0]?.hasAttribute("aria-current")).toBe(false)
     expect(rows[1]?.getAttribute("data-selected")).toBe("")
     expect(rows[1]?.getAttribute("aria-current")).toBe("page")
-    expect(rows[1]?.classList.contains("bg-v2-background-bg-selected")).toBe(true)
+    expect(rows[1]?.classList.contains("bg-v2-background-bg-layer-03")).toBe(true)
   })
 
   test("clears every selected state on a non-session route", () => {
@@ -31,7 +31,7 @@ describe("custom sidebar session selection", () => {
     applySidebarSessionSelection(root, "one")
     applySidebarSessionSelection(root, undefined)
 
-    expect(root.querySelector('[data-selected]')).toBeNull()
-    expect(root.querySelector('[aria-current]')).toBeNull()
+    expect(root.querySelector("[data-selected]")).toBeNull()
+    expect(root.querySelector("[aria-current]")).toBeNull()
   })
 })
