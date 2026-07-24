@@ -13,12 +13,12 @@ import {
 } from "./settings"
 
 describe("layout transition", () => {
-  test("custom builds pin the legacy layout", () => {
-    expect(legacyLayoutPinned).toBe(true)
-    expect(newLayoutDesignsDefault).toBe(false)
-    expect(oldInterfaceSunset).toBeNull()
-    expect(resolveNewLayoutDesigns(false, true, true)).toBe(false)
-    expect(resolveNewLayoutDesigns(true, true, true)).toBe(false)
+  test("custom builds default to the new layout", () => {
+    expect(legacyLayoutPinned).toBe(false)
+    expect(newLayoutDesignsDefault).toBe(true)
+    expect(oldInterfaceSunset).not.toBeNull()
+    expect(resolveNewLayoutDesigns(false, true, true)).toBe(true)
+    expect(resolveNewLayoutDesigns(true, false, false)).toBe(true)
   })
 
   test("hides the transition until a sunset is scheduled", () => {

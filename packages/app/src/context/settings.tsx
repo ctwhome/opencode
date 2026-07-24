@@ -56,11 +56,11 @@ export interface Settings {
 export const monoDefault = "System Mono"
 export const sansDefault = "System Sans"
 export const terminalDefault = "JetBrainsMono Nerd Font Mono"
-export const legacyLayoutPinned = true
-const legacyNewLayoutDesignsDefault = legacyLayoutPinned ? false : import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"
-export const newLayoutDesignsDefault = !legacyLayoutPinned
-// Upstream retires the legacy interface on September 14, 2026. This custom build keeps it available.
-export const oldInterfaceSunset: Date | null = legacyLayoutPinned ? null : new Date(2026, 8, 14)
+export const legacyLayoutPinned = false
+// The CTW sidebar is mounted directly in the new interface, so custom builds no longer depend on LegacyLayout.
+const legacyNewLayoutDesignsDefault = true
+export const newLayoutDesignsDefault = true
+export const oldInterfaceSunset: Date | null = new Date(2026, 8, 14)
 const newLayoutDesignsUpgradeCutoff = "1.17.19"
 
 function compareVersions(a: string, b: string) {

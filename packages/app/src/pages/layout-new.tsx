@@ -7,6 +7,7 @@ import { Titlebar, type TitlebarUpdate } from "@/components/titlebar"
 import { usePlatform } from "@/context/platform"
 import { setNavigate } from "@/utils/notification-click"
 import { setV2Toast, ToastRegion } from "@/utils/toast"
+import { CtwSidebar } from "@/ctw/sidebar/sidebar"
 
 export default function NewLayout(props: ParentProps) {
   const platform = usePlatform()
@@ -42,8 +43,11 @@ export default function NewLayout(props: ParentProps) {
             : undefined
         }
       />
-      <main class="flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col items-start contain-strict">
-        <Suspense>{props.children}</Suspense>
+      <main class="flex-1 min-h-0 min-w-0 overflow-hidden flex items-stretch contain-strict">
+        <CtwSidebar />
+        <div data-component="ctw-sidebar-main" class="flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col items-start">
+          <Suspense>{props.children}</Suspense>
+        </div>
       </main>
       {import.meta.env.DEV && state.debugTools && <DebugBar inline />}
       <TabsInfoPopup />

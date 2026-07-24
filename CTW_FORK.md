@@ -16,9 +16,9 @@ Keep these concerns as separate commits, in this order:
 
 1. `feat(app): persist web sidebar projects`
 2. `fix(app): protect sidebar hydration`
-3. `fix(app): retain legacy sidebar layout`
+3. `feat(app): mount CTW sidebar in the new layout`
 
-The first two implement server-global sidebar state for the private single-user server. Sessions already live in the server database. The third commit is a local product preference and should remain separate from the upstreamable persistence feature.
+The first two implement server-global sidebar state for the private single-user server. Sessions already live in the server database. The third commit is an isolated product layer: its implementation lives under `packages/app/src/ctw/sidebar/`, consumes public app contexts, and touches upstream UI only through one import and one mount in `pages/layout-new.tsx`. It must not import `LegacyLayout` or `pages/layout/*`.
 
 ## Update cadence
 
@@ -34,11 +34,11 @@ For each stable release:
 6. Regenerate SDK files when the HTTP API changes.
 7. Run focused tests, package typechecks, the HTTP API exerciser, and a production binary build.
 8. Start the candidate on a spare local port and compare health, project IDs, session IDs, and sidebar state with production.
-9. In a fresh browser origin, verify the legacy `Projects and sessions` navigation loads from server state. Also verify a stored `newLayoutDesigns=true` preference cannot enable the redesigned layout.
+9. In a fresh browser origin, verify the new UI is active, the CTW sidebar hydrates projects and sessions without a reload, and collapsed/expanded state persists. Verify session clicks use server-keyed tab routes, the selected session is highlighted, and the mobile drawer leaves no hidden focusable controls.
 10. Back up sidebar state, deploy the candidate atomically, and verify both local and private-network URLs.
-11. Tag the verified source as `ctw-v<upstream>-legacy-sidebar.<revision>`.
+11. Tag the verified source as `ctw-v<upstream>-new-ui-sidebar.<revision>`.
 
-If the legacy layout is removed upstream, stop the update rather than carrying a blind conflict resolution. Decide explicitly whether to port shared sidebar persistence into the current interface or assume ownership of the removed UI.
+If upstream changes `NewLayout`, preserve the one-import/one-mount seam and adapt only that seam or the CTW context adapters. Never recover by importing the legacy sidebar implementation; upstream must be able to remove `LegacyLayout` without deleting the CTW sidebar.
 
 ## Scope and security
 
