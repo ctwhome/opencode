@@ -39,6 +39,27 @@
   <a href="README.vi.md">Tiếng Việt</a>
 </p>
 
+> [!IMPORTANT]
+> ## This fork keeps the sidebar
+>
+> This fork restores a new sidebar divided like the old projects view, with each project's sessions inside it. It also works on mobile. Project settings are stored in the **OpenCode database** rather than browser local storage, so sidebars stay consistent across computers and phones.
+>
+> Highlights of this fork:
+>
+> - Project-based sidebar with sessions grouped inside each project.
+> - Mobile support with touch-drag gestures to open and close the sidebar.
+> - Session archiving, restored for this fork after it disappeared around the 1.18 release series.
+> - Terminal and search toggles visible on desktop and mobile.
+> - Git workflow improvements for staging files, committing, and pushing, including automated commit messages in the Git sidebar.
+>
+> <img width="433" height="388" alt="OpenCode fork sidebar with project sessions" src="https://github.com/user-attachments/assets/cc074a4d-5b77-4690-9d18-c18e271d66eb" />
+>
+> <img width="435" height="763" alt="OpenCode fork sidebar on mobile" src="https://github.com/user-attachments/assets/0d81a6c9-9aa1-4840-9d18-c18e271d66eb" />
+>
+> <img width="1432" height="961" alt="OpenCode fork Git sidebar workflow" src="https://github.com/user-attachments/assets/88afe709-55d2-4242-a482-a2ce51a1a0ba" />
+>
+> I hope to keep maintaining this fork and keep its features on top of the latest OpenCode changes.
+
 [![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
 
 ---
