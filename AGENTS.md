@@ -4,6 +4,15 @@
 - The default branch in this repo is `dev`.
 - Local `main` ref may not exist; use `dev` or `origin/dev` for diffs.
 
+## Ctw sidebar fork build
+
+- The locally deployed sidebar build is based on the `ctw-v1.18.4-new-ui-sidebar.8` tag, not upstream `dev`.
+- To create the next local sidebar build, use a disposable worktree from that tag and set the embedded version explicitly:
+  `OPENCODE_VERSION='1.18.4-new-ui-sidebar.9' bun run --cwd packages/opencode build --single --skip-install`
+- The native macOS artifact is `packages/opencode/dist/opencode-darwin-arm64/bin/opencode`. Install it as `/Users/ctw/.bun/bin/opencode` and preserve the previous binary before replacement.
+- Restart the web LaunchAgent with `launchctl kickstart -k gui/$(id -u)/com.ctw.opencode-web`.
+- Verify with `/Users/ctw/.bun/bin/opencode --version`, `launchctl print gui/$(id -u)/com.ctw.opencode-web`, and `curl http://127.0.0.1:4096/` expecting `HTTP/1.1 200 OK`.
+
 ## Branch Names
 
 Use a short branch name of at most three words, separated by hyphens. Do not use slashes or type prefixes such as `feat/` or `fix/`.
